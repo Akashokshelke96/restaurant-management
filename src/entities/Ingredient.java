@@ -37,3 +37,4 @@ public class Ingredient {
     private double rate;
 
 }
+//this class contains an object of ingredient
