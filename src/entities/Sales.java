@@ -25,3 +25,4 @@ public class Sales {
         this.order = order;
     }
 }
+// sales class to get amount and order
