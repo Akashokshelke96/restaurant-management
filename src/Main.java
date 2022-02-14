@@ -1,9 +1,11 @@
 import entities.*;
 import exceptions.IngredientNotFoundException;
+import exceptions.InsufficientIngredientException;
 import exceptions.InsufficientMoneyException;
 import exceptions.RecipeNotFoundException;
 import service.AccountHandler;
 import service.IngredientHandler;
+import service.RecipeHandler;
 
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +20,7 @@ public class Main {
     private static List<Recipe> recipeList;
     private static AccountHandler accountHandler;
     private static IngredientHandler ingredientHandler;
+    private static double qtyOrdered = Double.parseDouble(null);
 
 
     public static void main(String[] args) {
@@ -25,6 +28,9 @@ public class Main {
         Ingredient selectedIngredient = null;
         double ingredientQty = 0;
         double qtyOrdered;
+        Recipe selectedRecipe = null;
+
+        Map<Ingredient, Double> insufficientIngredients = null;
         while (true) {
             try {
                 if (currentCommand == CommandType.NO_COMMAND) {
@@ -40,7 +46,7 @@ public class Main {
                     ingredientQty = inputIngredientQty();
                     if (ingredientHandler.isPossibleToOrderIngredient(selectedIngredient, ingredientQty, availableMoney)) {
                         System.out.println("Ordered Successfully ");
-                        updateIngredientQty(selectedIngredient, ingredientQty);
+                        purchaseIngredient(selectedIngredient, ingredientQty);
                         currentCommand = CommandType.NO_COMMAND;
                     } else {
                         throw new InsufficientMoneyException();
@@ -54,22 +60,31 @@ public class Main {
                 } else if (currentCommand == CommandType.VIEW_NET_PROFIT) {
                     accountHandler.printProfit(salesList, expenseList);
                     currentCommand = CommandType.NO_COMMAND;
-                }else if(currentCommand == CommandType.PLACE_ORDER){
+                } else if (currentCommand == CommandType.PLACE_ORDER) {
+                    selectedRecipe = selectRecipe();
+                    RecipeHandler.checkIfPossibleToPrepareRecipe(selectedRecipe, ingredientList);
+                } else if (currentCommand == CommandType.ORDER_MULTIPLE_INGREDIENT) {
+                    ingredientHandler.isPossibleToOrderIngredients(insufficientIngredients, availableMoney);
+                    purchaseIngredients(insufficientIngredients);
+                    currentCommand = CommandType.FINALISE_ORDER;
+
+                } else if (currentCommand == CommandType.FINALISE_ORDER) {
 
                 }
                 if (currentCommand == CommandType.EXIT) {
                     System.exit(0);
                 }
-            }
-            catch (InsufficientMoneyException ex){
-                System.out.println(ex);
+            } catch (InsufficientIngredientException ex) {
+                insufficientIngredients = ex.getInsufficientIngredients();
+                currentCommand = CommandType.ORDER_MULTIPLE_INGREDIENT;
+            } catch (InsufficientMoneyException ex) {
+                System.out.println(ex.getMessage());
                 currentCommand = CommandType.NO_COMMAND;
-            }
-            catch (Exception ex){
+            } catch (Exception ex) {
                 System.out.println(ex.getMessage());
             }
         }
-        }
+    }
 
     private static Ingredient selectIngredient() {
         Scanner scan = new Scanner((System.in));
@@ -100,37 +115,59 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         return scanner.nextInt();
     }
-    public static void updateIngredientQty(Ingredient ingredientOrdered, double qtyOrdered){
-        for(int i = 0; i< ingredientList.size();i++){
-            if(ingredientList.get(i).getName().equals(ingredientOrdered.getName())){
+
+    public static void purchaseIngredient(Ingredient ingredientOrdered, double qtyOrdered) {
+        for (int i = 0; i < ingredientList.size(); i++) {
+            if (ingredientList.get(i).getName().equals(ingredientOrdered.getName())) {
                 double oldQty = ingredientList.get(i).getQty();
                 ingredientList.get(i).setQty(oldQty + qtyOrdered);
             }
         }
-        double totalAmount = ingredientOrdered.getRate()*qtyOrdered;
-        Map<Ingredient,Double> composition = new HashMap<>();
-        composition.put(ingredientOrdered,qtyOrdered);
-        PurchaseOrder po = new PurchaseOrder(totalAmount,composition);
-        expenseList.add(new Expense(totalAmount,po,ExpenseType.PURCHASE));
-
+        double totalAmount = ingredientOrdered.getRate() * qtyOrdered;
+        Map<Ingredient, Double> composition = new HashMap<>();
+        composition.put(ingredientOrdered, qtyOrdered);
+        PurchaseOrder po = new PurchaseOrder(totalAmount, composition);
+        expenseList.add(new Expense(totalAmount, po, ExpenseType.PURCHASE));
+        availableMoney -= totalAmount;
     }
-    public static void purchaseIngredient(Ingredient ingredientOrdered , double qty){
-        for(int i = 0; i < ingredientList.size() ; i++){
-            if(ingredientList.get(i).getName().equals(ingredientOrdered.getName())){
-                double oldQty = ingredientList.get(i).getQty();
 
-                double qtyOrdered = 0;
-                ingredientList.get(i).setQty(oldQty + qtyOrdered);
+    public static void purchaseIngredients(Map<Ingredient, Double> ingredientsToOrder) {
+        double moneySpent = 0.0;
+        for (int i = 0; i < ingredientList.size(); i++) {
+            if (ingredientsToOrder.containsKey(ingredientList.get(i))) {
+                double oldQty = ingredientList.get(i).getQty();
+                double qtyToOrder = ingredientsToOrder.get(ingredientList.get(i));
+                moneySpent += moneySpent + qtyToOrder * ingredientList.get(i).getRate();
+                ingredientList.get(i).setQty(oldQty + ingredientsToOrder.get(ingredientList.get(i)));
             }
         }
+        PurchaseOrder po = new PurchaseOrder(moneySpent, ingredientsToOrder);
+        Expense expense = new Expense(moneySpent, po, ExpenseType.PURCHASE);
+        expenseList.add(expense);
+        availableMoney -= moneySpent;
 
     }
-    public  static Recipe selectRecipe() {
+
+    public static void finalizeOrder(Recipe recipe) {
+        Map<Ingredient, Double> composition = recipe.getComposition();
+        for (int i = 0; i < ingredientList.size(); i++) {
+            Ingredient currentIngredient = ingredientList.get(i);
+            if (composition.containsKey(currentIngredient)) {
+                double oldQty = currentIngredient.getQty();
+                ingredientList.get(i).setQty(oldQty - composition.get(currentIngredient));
+            }
+        }
+        Order order = new Order(recipe, recipe.getAmount());
+
+    }
+
+
+    public static Recipe selectRecipe() {
         Scanner scanner = new Scanner(System.in);
         String recipeName = scanner.nextLine();
 
-        for (int i = 0; i < recipeList.size();i++){
-            if(recipeList.get(i).getName().equals(recipeName)){
+        for (int i = 0; i < recipeList.size(); i++) {
+            if (recipeList.get(i).getName().equals(recipeName)) {
                 return recipeList.get(i);
 
             }
