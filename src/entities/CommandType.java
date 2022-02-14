@@ -9,7 +9,9 @@ public enum CommandType {
     VIEW_NET_PROFIT,
     PLACE_ORDER,
     EXIT,
-    INPUT_INGREDIENT_QTY
-// this contains list of all the possible commands that we want to act upon.
+    INPUT_INGREDIENT_QTY,
+    ORDER_MULTIPLE_INGREDIENT,
+  FINALISE_ORDER
+  // this contains list of all the possible commands that we want to act upon.
 
 }
