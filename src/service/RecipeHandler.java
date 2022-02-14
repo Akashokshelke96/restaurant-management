@@ -2,6 +2,7 @@ package service;
 
 import entities.Ingredient;
 import entities.Recipe;
+import exceptions.InsufficientIngredientException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public class RecipeHandler {
-    public  void checkIfPossibleToPrepareRecipe(Recipe recipe, List<Ingredient> ingredientList){
+    public static void checkIfPossibleToPrepareRecipe(Recipe recipe, List<Ingredient> ingredientList){
         Map<Ingredient, Double> composition = recipe.getComposition();
         Map<Ingredient,Double> insufficientIngredientList = new HashMap<>();
     for (Ingredient ing : ingredientList) {
@@ -20,6 +21,9 @@ public class RecipeHandler {
             }
             }
         }
+    if(insufficientIngredientList.size() > 0){
+        throw new InsufficientIngredientException(insufficientIngredientList);
+    }
 
 
         }
