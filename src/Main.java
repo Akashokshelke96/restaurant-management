@@ -3,14 +3,15 @@ import exceptions.IngredientNotFoundException;
 import exceptions.InsufficientIngredientException;
 import exceptions.InsufficientMoneyException;
 import exceptions.RecipeNotFoundException;
+import io.AccountsIo;
+import io.IngredientIo;
+import io.RecipeIo;
 import service.AccountHandler;
 import service.IngredientHandler;
 import service.RecipeHandler;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.io.FileNotFoundException;
+import java.util.*;
 
 public class Main {
     private static List<Sales> salesList;
@@ -18,19 +19,36 @@ public class Main {
     private static double availableMoney;
     private static List<Ingredient> ingredientList;
     private static List<Recipe> recipeList;
+
+    private static RecipeHandler recipeHandler;
     private static AccountHandler accountHandler;
     private static IngredientHandler ingredientHandler;
-    private static double qtyOrdered = Double.parseDouble(null);
+    private static IngredientIo ingredientIo;
+    private static RecipeIo recipeIo;
+    private static AccountsIo accountsIo;
 
 
-    public static void main(String[] args) {
+
+    public static void main(String[] args) throws FileNotFoundException {
+        salesList = new ArrayList<>();
+        expenseList = new ArrayList<>();
+        accountHandler = new AccountHandler();
+        recipeHandler = new RecipeHandler();
+        ingredientIo = new IngredientIo();
+        ingredientHandler = new IngredientHandler();
+        recipeIo = new RecipeIo();
+        accountsIo = new AccountsIo();
+
         CommandType currentCommand = CommandType.NO_COMMAND;
         Ingredient selectedIngredient = null;
         double ingredientQty = 0;
         double qtyOrdered;
         Recipe selectedRecipe = null;
-
         Map<Ingredient, Double> insufficientIngredients = null;
+        ingredientList =  ingredientIo.readIngredientList("resources\\Ingredients.txt"); //this works on windows
+        recipeList = recipeIo.readAllRecipes("resources\\Recipe.txt", ingredientList);
+        availableMoney = accountsIo.readAAccounts("resources//Accounts.txt");
+        System.out.println("Available Money is " + availableMoney);
         while (true) {
             try {
                 if (currentCommand == CommandType.NO_COMMAND) {
@@ -55,7 +73,7 @@ public class Main {
                     accountHandler.printSales(salesList);
                     currentCommand = CommandType.NO_COMMAND;
                 } else if (currentCommand == CommandType.VIEW_TOTAL_EXPENSES) {
-                    accountHandler.printExpense(expenseList);
+                    accountHandler.printExpenses(expenseList);
                     currentCommand = CommandType.NO_COMMAND;
                 } else if (currentCommand == CommandType.VIEW_NET_PROFIT) {
                     accountHandler.printProfit(salesList, expenseList);
@@ -63,13 +81,17 @@ public class Main {
                 } else if (currentCommand == CommandType.PLACE_ORDER) {
                     selectedRecipe = selectRecipe();
                     RecipeHandler.checkIfPossibleToPrepareRecipe(selectedRecipe, ingredientList);
+                    currentCommand = CommandType.FINALISE_ORDER;
+
                 } else if (currentCommand == CommandType.ORDER_MULTIPLE_INGREDIENT) {
                     ingredientHandler.isPossibleToOrderIngredients(insufficientIngredients, availableMoney);
                     purchaseIngredients(insufficientIngredients);
                     currentCommand = CommandType.FINALISE_ORDER;
 
                 } else if (currentCommand == CommandType.FINALISE_ORDER) {
-
+                finalizeOrder(selectedRecipe);
+                    System.out.println("Order for  " + selectedRecipe.getName() + " is finalised and ready to Serve Hot.");
+                    currentCommand = CommandType.NO_COMMAND;
                 }
                 if (currentCommand == CommandType.EXIT) {
                     System.exit(0);
@@ -87,6 +109,7 @@ public class Main {
     }
 
     private static Ingredient selectIngredient() {
+        System.out.println("Please Enter the Ingredient you want to order :");
         Scanner scan = new Scanner((System.in));
         String ingredientName = scan.nextLine();
 
@@ -158,11 +181,14 @@ public class Main {
             }
         }
         Order order = new Order(recipe, recipe.getAmount());
-
+        Sales sale = new Sales(order , recipe.getAmount());
+        salesList.add(sale);
+        availableMoney += recipe.getAmount();
     }
 
 
     public static Recipe selectRecipe() {
+        System.out.println("Please Enter the recipe you want to order");
         Scanner scanner = new Scanner(System.in);
         String recipeName = scanner.nextLine();
 
