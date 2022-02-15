@@ -34,4 +34,8 @@ public class Expense {
         this.purchaseOrder = purchaseOrder;
         this.expenseType = expenseType;
     }
+    public String toString(){
+        return "Amount = " +  this.getAmount() + ",Expense Type = " + this.getExpenseType();
+
+    }
 }
