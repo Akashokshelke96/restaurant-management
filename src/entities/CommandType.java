@@ -1,7 +1,7 @@
 package entities;
 
 public enum CommandType {
-  NO_COMMAND,
+    NO_COMMAND,
     VIEW_AVAILABLE_INGREDIENTS,
     ORDER_SPECIFIC_INGREDIENT,
     VIEW_TOTAL_SALES,
@@ -11,7 +11,7 @@ public enum CommandType {
     EXIT,
     INPUT_INGREDIENT_QTY,
     ORDER_MULTIPLE_INGREDIENT,
-  FINALISE_ORDER
+    FINALISE_ORDER
   // this contains list of all the possible commands that we want to act upon.
 
 }
