@@ -1,0 +1,14 @@
+Rice 10 50
+Pulses 10 120
+Tomato 10 80
+Onions 10 100
+Milk 10 80
+Potato 10 20
+Coriander 10 10
+Carrots 10 50
+Butter 10 100
+Yoghurt 2 30
+Bread 30 3
+Cheese 20 100
+Sugar 10 80
+Capsicum 10 40
